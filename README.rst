@@ -5,9 +5,6 @@ Django test queries
 .. image:: https://badge.fury.io/py/dj-test-queries.svg
     :target: https://badge.fury.io/py/dj-test-queries
 
-.. image:: https://travis-ci.org/PetrDlouhy/dj-test-queries.svg?branch=master
-    :target: https://travis-ci.org/PetrDlouhy/dj-test-queries
-
 .. image:: https://codecov.io/gh/PetrDlouhy/dj-test-queries/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/PetrDlouhy/dj-test-queries
 
@@ -21,11 +18,11 @@ The full documentation is at https://dj-test-queries.readthedocs.io.
 Quickstart
 ----------
 
-Install ``django-debug-toolbar`` dependency to your project:
+Install ``dj-test-queries``:
 
 .. code-block:: bash
 
-   pip install django-debug-toolbar
+   pip install dj-test-queries
 
 Apply ``NumQueriesMixin`` to your test and use ``assertNumQueries`` as you would normally do:
 
@@ -38,6 +35,9 @@ Apply ``NumQueriesMixin`` to your test and use ``assertNumQueries`` as you would
             with self.assertNumQueries(3):
                 xyz()
 
+Generating SQL log records
+--------------------------
+
 Run the tests with ``TEST_QUERIES_REWRITE_SQLLOGS`` environment variable to generate sqllog files:
 
 .. code-block:: bash
@@ -48,6 +48,8 @@ Files like ``test_views.XYZTests.test_xyz.sqllog`` will appear in ``sqllog`` dir
 
 If you will run the test next time and the queries will differ from previous, the test will print out output detailing the change with stacktrace from where the query was executed.
 You can also enlist the ``*.sqllog`` files to your repository to see the changes.
+
+If the tests are executed without the ``TEST_QUERIES_REWRITE_SQLLOGS`` environment variable, the logs are created to files named like ``test_views.XYZTests.test_xyz.sqllog`` to make possible to compare the difference.
 
 Running Tests
 -------------
