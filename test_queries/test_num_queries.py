@@ -100,9 +100,7 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
 
 class NumQueriesMixin(TransactionTestCase):
     executed_times = 0
-    context: Dict[str, Any] = {
-        "records": [],
-    }
+    context: Dict[str, Any] = {}
 
     def assertNumQueries(  # noqa: N802
         self, num, func=None, *args, using=DEFAULT_DB_ALIAS, **kwargs
@@ -116,6 +114,7 @@ class NumQueriesMixin(TransactionTestCase):
         )
         self.executed_times += 1
         self.context["filename"] = filename
+        self.context["records"] = []
         logger = Logger(context=self.context)
 
         wrap_cursor(conn, logger)
