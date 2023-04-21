@@ -93,12 +93,13 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
             filename += ".new"
         os.makedirs(filename.rsplit("/", 1)[0], exist_ok=True)
         with open(filename, "w") as f:
-            f.write("\n".join(raw_queries))
+            f.write("\n".join(raw_queries) + "\n")
 
         return super().__exit__(exc_type, exc_value, traceback)
 
 
 class NumQueriesMixin(TransactionTestCase):
+    executed_times = 0
     context: Dict[str, Any] = {
         "records": [],
     }
@@ -112,9 +113,9 @@ class NumQueriesMixin(TransactionTestCase):
             f"{path}/sqllog/{file_prefix}."
             f"{self.__class__.__name__}."
             f"{self._testMethodName}.sqllog"
+            f"{self._testMethodName}.{self.executed_times}.sqllog"
         )
-        # if os.path.exists(filename):
-        #     os.remove(filename)
+        self.executed_times += 1
         self.context["filename"] = filename
         logger = Logger(context=self.context)
 
