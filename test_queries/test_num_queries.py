@@ -112,7 +112,6 @@ class NumQueriesMixin(TransactionTestCase):
         filename = (
             f"{path}/sqllog/{file_prefix}."
             f"{self.__class__.__name__}."
-            f"{self._testMethodName}.sqllog"
             f"{self._testMethodName}.{self.executed_times}.sqllog"
         )
         self.executed_times += 1
