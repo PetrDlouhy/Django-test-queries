@@ -39,51 +39,62 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
         super().__init__(test_case, num, connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        with open(self.context_dict["filename"], "r") as f:
-            lines = f.readlines()
-        lines = [line.strip() for line in lines]
-        raw_queries = [s["raw_sql"] for s in self.context_dict["records"]]
-        s = SequenceMatcher(None, lines, raw_queries)
-        for tag, i1, i2, j1, j2 in s.get_opcodes():
-            if tag not in ["insert", "equal"]:
-                print(
-                    "{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}".format(
-                        tag,
-                        i1,
-                        i2,
-                        j1,
-                        j2,
-                        [s[:50] + "..." for s in lines[i1:i2]],
-                        [s[:50] + "..." for s in raw_queries[j1:j2]],
-                    )
-                )
-            if tag == "insert":
-                for j in range(j1, j2):
-                    string = "New query was recorded:\n"
-                    string += raw_queries[j1]
-                    string += "\n"
-                    string += "Stacktrace:\n"
-                    string += "\n".join(
-                        f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}'
-                        for s in self.context_dict["records"][j]["stacktrace"]
-                    )
-                    string += "\n"
-                    string += "\n".join(
-                        [
-                            f"{rk}: {rv}"
-                            for rk, rv in self.context_dict["records"][j].items()
-                            if rk not in ["raw_sql", "stacktrace"]
-                        ]
-                    )
-                    string += "\n"
-                    string += "-----------------------------------------"
-                    print(string)
-
-        if os.environ.get("TEST_QUERIES_REWRITE_SQLLOGS"):
-            with open(self.context_dict["filename"], "w") as f:
-                f.write("\n".join(raw_queries))
-
         unwrap_cursor(self.connection)
+        filename = self.context_dict["filename"]
+        try:
+            with open(filename, "r") as f:
+                lines = f.readlines()
+        except FileNotFoundError:
+            lines = None
+        raw_queries = [s["raw_sql"] for s in self.context_dict["records"]]
+        if lines:
+            lines = [line.strip() for line in lines]
+            s = SequenceMatcher(None, lines, raw_queries)
+            for tag, i1, i2, j1, j2 in s.get_opcodes():
+                if tag not in ["insert", "replace", "equal"]:
+                    print(
+                        "{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}".format(
+                            tag,
+                            i1,
+                            i2,
+                            j1,
+                            j2,
+                            [s[:50] + "..." for s in lines[i1:i2]],
+                            [s[:50] + "..." for s in raw_queries[j1:j2]],
+                        )
+                    )
+                if tag in ["insert", "replace"]:
+                    for j in range(j1, j2):
+                        string = ""
+                        if tag == "insert":
+                            string += "New query was recorded:\n"
+                        elif tag == "replace":
+                            string += "Query was replaced:\n"
+                        string += raw_queries[j1]
+                        string += "\n"
+                        string += "Stacktrace:\n"
+                        string += "\n".join(
+                            f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}'
+                            for s in self.context_dict["records"][j]["stacktrace"]
+                        )
+                        string += "\n"
+                        string += "\n".join(
+                            [
+                                f"{rk}: {rv}"
+                                for rk, rv in self.context_dict["records"][j].items()
+                                if rk not in ["raw_sql", "stacktrace"]
+                            ]
+                        )
+                        string += "\n"
+                        string += "-----------------------------------------"
+                        print(string)
+
+        if not os.environ.get("TEST_QUERIES_REWRITE_SQLLOGS"):
+            filename += ".new"
+        os.makedirs(filename.rsplit("/", 1)[0], exist_ok=True)
+        with open(filename, "w") as f:
+            f.write("\n".join(raw_queries))
+
         return super().__exit__(exc_type, exc_value, traceback)
 
 
