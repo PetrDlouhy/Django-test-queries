@@ -1,2 +1,2 @@
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 from .test_num_queries import NumQueriesMixin
