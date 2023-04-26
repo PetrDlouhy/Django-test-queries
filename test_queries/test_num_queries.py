@@ -33,6 +33,28 @@ class Logger(object):
         pass
 
 
+def get_error_string(error_dict):
+    string = ""
+    string += error_dict["raw_sql"]
+    string += "\n"
+    string += "Stacktrace:\n"
+    string += "\n".join(
+        f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}'
+        for s in error_dict["stacktrace"]
+    )
+    string += "\n"
+    string += "\n".join(
+        [
+            f"{rk}: {rv}"
+            for rk, rv in error_dict.items()
+            if rk in ["sql", "params"]
+        ]
+    )
+    string += "\n"
+    string += "-----------------------------------------"
+    return string
+
+
 class _AssertQueriesContext(_AssertNumQueriesContext):
     def __init__(self, test_case, num, connection, context_dict):
         self.context_dict = context_dict
@@ -70,23 +92,7 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
                             string += "New query was recorded:\n"
                         elif tag == "replace":
                             string += "Query was replaced:\n"
-                        string += raw_queries[j1]
-                        string += "\n"
-                        string += "Stacktrace:\n"
-                        string += "\n".join(
-                            f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}'
-                            for s in self.context_dict["records"][j]["stacktrace"]
-                        )
-                        string += "\n"
-                        string += "\n".join(
-                            [
-                                f"{rk}: {rv}"
-                                for rk, rv in self.context_dict["records"][j].items()
-                                if rk not in ["raw_sql", "stacktrace"]
-                            ]
-                        )
-                        string += "\n"
-                        string += "-----------------------------------------"
+                        string += get_error_string(self.context_dict["records"][j])
                         print(string)
 
         if not os.environ.get("TEST_QUERIES_REWRITE_SQLLOGS"):
