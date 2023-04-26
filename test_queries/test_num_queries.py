@@ -94,6 +94,8 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
                             string += "Query was replaced:\n"
                         string += get_error_string(self.context_dict["records"][j])
                         print(string)
+                        print("See difference:")
+                        print(f"  diff {filename} {filename}.new")
 
         if not os.environ.get("TEST_QUERIES_REWRITE_SQLLOGS"):
             filename += ".new"
