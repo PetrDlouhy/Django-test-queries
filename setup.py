@@ -41,9 +41,10 @@ if sys.argv[-1] == 'tag':
     os.system("git push --tags")
     sys.exit()
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
-requirements = open('requirements.txt').readlines()
+requirements = open(os.path.join(BASE_DIR, 'requirements.txt')).readlines()
 
 setup(
     name='dj-test-queries',
