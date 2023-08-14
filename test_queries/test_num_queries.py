@@ -4,7 +4,7 @@ import re
 from difflib import SequenceMatcher
 from typing import Any, Dict
 
-from debug_toolbar.panels.sql.tracking import unwrap_cursor, wrap_cursor
+from debug_toolbar.panels.sql.tracking import wrap_cursor
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test import TransactionTestCase
 from django.test.testcases import _AssertNumQueriesContext
@@ -52,7 +52,6 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
         super().__init__(test_case, num, connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        unwrap_cursor(self.connection)
         filename = self.context_dict["filename"]
         try:
             with open(filename, "r") as f:
@@ -111,8 +110,9 @@ class NumQueriesMixin(TransactionTestCase):
         self.context["filename"] = filename
         self.context["records"] = []
         logger = Logger(context=self.context)
+        conn._djdt_logger = logger
 
-        wrap_cursor(conn, logger)
+        wrap_cursor(conn)
         context = _AssertQueriesContext(self, num, conn, self.context)
 
         if func is None:
