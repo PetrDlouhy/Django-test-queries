@@ -31,9 +31,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'test_queries',
-    
-    'test_queries.test_utils.test_app'
-    
 
     # if your app has other dependencies that need to be added to the site
     # they should be added here
