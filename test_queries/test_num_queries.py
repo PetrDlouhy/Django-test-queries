@@ -87,13 +87,11 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
                     )
                 if tag in ["insert", "replace"]:
                     for j in range(j1, j2):
-                        string = ""
                         if tag == "insert":
-                            string += "New query was recorded:\n"
+                            print("New query was recorded:")
                         elif tag == "replace":
-                            string += "Query was replaced:\n"
-                        string += get_error_string(self.context_dict["records"][j])
-                        print(string)
+                            print("Query was replaced:")
+                        print(get_error_string(self.context_dict["records"][j]))
                         print("See difference:")
                         print(f"  diff {filename} {filename}.new")
 
