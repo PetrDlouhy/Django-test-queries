@@ -22,7 +22,6 @@ jobs:
           - "3.10"
           - "3.11"
         django-version:
-          - "2.1"
           - "2.2"
           - "3.0"
           - "3.1"
@@ -30,6 +29,9 @@ jobs:
           - "4.0"
           - "4.1"
           - "4.2"
+        ddt-version:
+          - "3.8.1"
+          - "4.0.0"
 
     steps:
     - uses: actions/checkout@v2
@@ -45,7 +47,7 @@ jobs:
         pip install tox tox-gh-actions
 
     - name: Run tests
-      run: tox -e py${{ matrix.python-version }}-django-${{ matrix.django-version }}
+      run: tox -e py${{ matrix.python-version }}-django-${{ matrix.django-version }}-ddt${{ matrix.ddt-version }}
 
     # This step will upload the coverage report to codecov
     - name: Upload coverage to Codecov
@@ -53,3 +55,29 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}  # if needed, usually not required for public repos
         fail_ci_if_error: true  # optional: set to true if you want CI to fail when coverage upload fails
+
+  lint:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+
+    - name: Run flake8
+      run: tox -e flake8
+
+    - name: Run isort
+      run: tox -e isort
+
+    - name: Run black
+      run: tox -e black

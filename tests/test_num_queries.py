@@ -55,9 +55,7 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
     def test_file_comparison_with_existing_lines(self):
         # This test checks if the SQL log files are compared correctly when the file already has lines
         # You might need to adjust the expected filename and contents based on your implementation
-        expected_filename = (
-            "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
-        )
+        expected_filename = "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
         with open(expected_filename, "w") as f:
             f.write("SELECT 1\nSELECT 2")  # Writing multiple lines to the file
         with self.assertNumQueries(2):
@@ -71,9 +69,7 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
             self.assertEqual(f.read(), "SELECT 1\nSELECT 2\n")
 
     def test_file_comparison_with_existing_lines_not_equal(self):
-        expected_filename = (
-            "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
-        )
+        expected_filename = "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
         with open(expected_filename, "w") as f:
             f.write("SELECT 1")  # Writing multiple lines to the file
         with patch("builtins.print") as mock_print:
