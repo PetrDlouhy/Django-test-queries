@@ -32,6 +32,8 @@ jobs:
         ddt-version:
           - "3.8.1"
           - "4.0.0"
+          - "4.1.0"
+          - "4.2.0"
 
     steps:
     - uses: actions/checkout@v2
