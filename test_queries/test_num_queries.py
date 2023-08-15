@@ -38,18 +38,9 @@ def get_error_string(error_dict):
     string += error_dict["raw_sql"]
     string += "\n"
     string += "Stacktrace:\n"
-    string += "\n".join(
-        f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}'
-        for s in error_dict["stacktrace"]
-    )
+    string += "\n".join(f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}' for s in error_dict["stacktrace"])
     string += "\n"
-    string += "\n".join(
-        [
-            f"{rk}: {rv}"
-            for rk, rv in error_dict.items()
-            if rk in ["sql", "params"]
-        ]
-    )
+    string += "\n".join([f"{rk}: {rv}" for rk, rv in error_dict.items() if rk in ["sql", "params"]])
     string += "\n"
     string += "-----------------------------------------"
     return string
@@ -108,9 +99,7 @@ class NumQueriesMixin(TransactionTestCase):
     executed_times = 0
     context: Dict[str, Any] = {}
 
-    def assertNumQueries(  # noqa: N802
-        self, num, func=None, *args, using=DEFAULT_DB_ALIAS, **kwargs
-    ):
+    def assertNumQueries(self, num, func=None, *args, using=DEFAULT_DB_ALIAS, **kwargs):  # noqa: N802
         conn = connections[using]
         path, file_prefix = inspect.getmodule(self).__file__[:-3].rsplit("/", 1)
         filename = (
