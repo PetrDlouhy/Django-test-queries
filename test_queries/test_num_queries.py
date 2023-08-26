@@ -112,7 +112,10 @@ class NumQueriesMixin(TransactionTestCase):
         logger = Logger(context=self.context)
         conn._djdt_logger = logger
 
-        wrap_cursor(conn)
+        try:  # DDT >= 4.2.0
+            wrap_cursor(conn)
+        except TypeError:
+            wrap_cursor(conn, logger)
         context = _AssertQueriesContext(self, num, conn, self.context)
 
         if func is None:
