@@ -1,3 +1,3 @@
 
 # Additional requirements go here
-django-debug-toolbar
+django-debug-toolbar>=3.8.1,!=4.1.0
