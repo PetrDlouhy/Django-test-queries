@@ -52,6 +52,9 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
         super().__init__(test_case, num, connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if os.environ.get("TEST_QUERIES_DISABLE"):
+            return
+
         filename = self.context_dict["filename"]
         try:
             with open(filename, "r") as f:
@@ -110,12 +113,15 @@ class NumQueriesMixin(TransactionTestCase):
         self.context["filename"] = filename
         self.context["records"] = []
         logger = Logger(context=self.context)
-        conn._djdt_logger = logger
 
-        try:  # DDT >= 4.2.0
-            wrap_cursor(conn)
-        except TypeError:
-            wrap_cursor(conn, logger)
+        if not os.environ.get("TEST_QUERIES_DISABLE"):
+            conn._djdt_logger = logger
+
+            try:  # DDT >= 4.2.0
+                wrap_cursor(conn)
+            except TypeError:
+                wrap_cursor(conn, logger)
+
         context = _AssertQueriesContext(self, num, conn, self.context)
 
         if func is None:
