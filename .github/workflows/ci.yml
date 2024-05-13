@@ -26,11 +26,39 @@ jobs:
           - "4.0"
           - "4.1"
           - "4.2"
+          - "5.0"
         ddt-version:
-          - "3.8.1"
-          - "4.0.0"
-          # - "4.1.0"
-          - "4.2.0"
+          - "3.8"
+          - "4.0"
+          # - "4.1"
+          - "4.2"
+          - "4.3"
+      exclude:
+        - python-version: "3.8"
+          django-version: "5.0"
+          ddt-version: "4.3"
+        - python-version: "3.8"
+          django-version: "5.0"
+          ddt-version: "4.2"
+        - python-version: "3.8"
+          django-version: "5.0"
+          ddt-version: "4.0"
+        - python-version: "3.8"
+          django-version: "5.0"
+          ddt-version: "3.8"
+
+        - python-version: "3.9"
+          django-version: "5.0"
+          ddt-version: "4.3"
+        - python-version: "3.9"
+          django-version: "5.0"
+          ddt-version: "4.2"
+        - python-version: "3.9"
+          django-version: "5.0"
+          ddt-version: "4.0"
+        - python-version: "3.9"
+          django-version: "5.0"
+          ddt-version: "3.8"
 
     steps:
     - uses: actions/checkout@v2
@@ -53,7 +81,7 @@ jobs:
         PYTHON_VERSION=${PYTHON_VERSION//./}
         DJANGO_VERSION=${DJANGO_VERSION//./}
         DDT_VERSION=${DDT_VERSION//./}
-        tox -e py${PYTHON_VERSION}-django-${DJANGO_VERSION}-ddt${DDT_VERSION}
+        tox -e py${PYTHON_VERSION}-django${DJANGO_VERSION}-ddt${DDT_VERSION}
 
     # This step will upload the coverage report to codecov
     - name: Upload coverage to Codecov
