@@ -10,6 +10,24 @@ from django.test import TransactionTestCase
 from django.test.testcases import _AssertNumQueriesContext
 
 
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    if val in ("n", "no", "f", "false", "off", "0"):
+        return False
+    raise ValueError(f"invalid truth value {val}")
+
+
+def boolean_env_var(var: str, default=False) -> bool:
+    return strtobool(os.environ.get(var, str(default)))
+
+
 class Logger(object):
     def __init__(self, context):
         self.queries = []
@@ -52,7 +70,7 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
         super().__init__(test_case, num, connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if os.environ.get("TEST_QUERIES_DISABLE"):
+        if boolean_env_var("TEST_QUERIES_DISABLE"):
             return
 
         filename = self.context_dict["filename"]
@@ -88,7 +106,7 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
                         print("See difference:")
                         print(f"  diff {filename} {filename}.new")
 
-        if not os.environ.get("TEST_QUERIES_REWRITE_SQLLOGS"):
+        if not boolean_env_var("TEST_QUERIES_REWRITE_SQLLOGS"):
             filename += ".new"
         os.makedirs(filename.rsplit("/", 1)[0], exist_ok=True)
         with open(filename, "w") as f:
@@ -114,7 +132,7 @@ class NumQueriesMixin(TransactionTestCase):
         self.context["records"] = []
         logger = Logger(context=self.context)
 
-        if not os.environ.get("TEST_QUERIES_DISABLE"):
+        if not boolean_env_var("TEST_QUERIES_DISABLE"):
             conn._djdt_logger = logger
 
             try:  # DDT >= 4.2.0

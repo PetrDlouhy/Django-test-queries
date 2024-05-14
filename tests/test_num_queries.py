@@ -10,13 +10,15 @@ current_directory = os.getcwd()
 
 
 class TestNumQueriesMixin(NumQueriesMixin, TestCase):
+    def setUp(self):
+        os.environ["TEST_QUERIES_REWRITE_SQLLOGS"] = "False"
+
     def test_basic_functionality(self):
         with self.assertNumQueries(1):
             connections["default"].cursor().execute("SELECT 1")
 
     def test_file_creation(self):
         # This test checks if the SQL log file is created
-        # You might need to adjust the expected filename based on your implementation
         expected_filename = "path_to_expected_file.sqllog"  # Adjust this
         with self.assertNumQueries(1):
             connections["default"].cursor().execute("SELECT 1")
@@ -24,7 +26,6 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
 
     def test_file_comparison(self):
         # This test checks if the SQL log files are compared correctly
-        # You might need to adjust the expected filename and contents based on your implementation
         expected_filename = "path_to_expected_file.sqllog"  # Adjust this
         with open(expected_filename, "w") as f:
             f.write("SELECT 1")
@@ -42,19 +43,18 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
         self.assertNumQueries(1, call_sql)
 
     def test_environment_variables(self):
+        """If TEST_QUERIES_DISABLE=True, all values should pass."""
         os.environ["TEST_QUERIES_DISABLE"] = "1"
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(100):
             connections["default"].cursor().execute("SELECT 1")
-        # Test content of the SQL log files
-        with open(
-            "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_environment_variables.0.sqllog.new",
-            "r",
-        ) as f:
-            self.assertEqual(f.read(), "SELECT 1\n")
+        os.environ["TEST_QUERIES_DISABLE"] = "0"
+        # But if TEST_QUERIES_DISABLE=False, it should fail
+        with self.assertRaisesRegex(AssertionError, "1 queries executed, 100 expected"):
+            with self.assertNumQueries(100):
+                connections["default"].cursor().execute("SELECT 1")
 
     def test_file_comparison_with_existing_lines(self):
         # This test checks if the SQL log files are compared correctly when the file already has lines
-        # You might need to adjust the expected filename and contents based on your implementation
         expected_filename = (
             "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
         )
@@ -72,10 +72,11 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
 
     def test_file_comparison_with_existing_lines_not_equal(self):
         expected_filename = (
-            "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog"
+            "tests/sqllog/"
+            "test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines_not_equal.0.sqllog"
         )
         with open(expected_filename, "w") as f:
-            f.write("SELECT 1")  # Writing multiple lines to the file
+            f.write("SELECT 2")  # Writing multiple lines to the file
         with patch("builtins.print") as mock_print:
             with self.assertRaisesRegex(AssertionError, "Captured queries were:\n1. SELECT 1\n2. SELECT 2"):
                 with self.assertNumQueries(1):
