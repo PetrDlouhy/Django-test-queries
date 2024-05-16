@@ -5,8 +5,8 @@ Django test queries
 .. image:: https://badge.fury.io/py/dj-test-queries.svg
     :target: https://badge.fury.io/py/dj-test-queries
 
-.. image:: https://codecov.io/gh/PetrDlouhy/dj-test-queries/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/PetrDlouhy/dj-test-queries
+.. image:: https://codecov.io/gh/PetrDlouhy/django-test-queries/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/PetrDlouhy/django-test-queries
 
 Extension of assertNumQueries that can record queries that were executed and show the differences in future runs.
 It also shows tracebac of where the query was called.
