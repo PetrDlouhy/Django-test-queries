@@ -51,17 +51,23 @@ class Logger(object):
         pass
 
 
-def get_error_string(error_dict):
-    string = ""
-    string += error_dict["raw_sql"]
-    string += "\n"
-    string += "Stacktrace:\n"
-    string += "\n".join(f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}' for s in error_dict["stacktrace"])
-    string += "\n"
-    string += "\n".join([f"{rk}: {rv}" for rk, rv in error_dict.items() if rk in ["sql", "params"]])
-    string += "\n"
-    string += "-----------------------------------------"
-    return string
+def write_full_record(records, file):
+    for error_dict in records:
+        file.write(f"Raw SQL: {error_dict['raw_sql']}\n\n")
+        file.write("Stacktrace:\n")
+        stacktrace_entries = [
+            f'  File: "{s[0]}", Line: {s[1]}, in {s[2]}\n    {s[3]}' for s in error_dict["stacktrace"]
+        ]
+        file.write("\n".join(stacktrace_entries) + "\n")
+
+        file.write("\n")
+        for rk, rv in error_dict.items():
+            if rk in ["sql", "params"]:
+                file.write(f"{rk}: {rv}\n\n")
+        file.write("\n")
+        file.write("----------------------------------------------------------------------")
+        file.write("\n")
+        file.write("\n")
 
 
 class _AssertQueriesContext(_AssertNumQueriesContext):
@@ -72,7 +78,16 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
     def __exit__(self, exc_type, exc_value, traceback):
         if boolean_env_var("TEST_QUERIES_DISABLE"):
             return
+        try:
+            super_result = super().__exit__(exc_type, exc_value, traceback)
+        except AssertionError as e:
+            custom_query_message = self.custom_format_queries()
+            custom_message = "\n".join(e.args[0].split("\n")[0:1]) + "\n" + custom_query_message
+            raise AssertionError(custom_message) from None
+        return super_result
 
+    def custom_format_queries(self):
+        formatted_queries = []
         filename = self.context_dict["filename"]
         try:
             with open(filename, "r") as f:
@@ -82,10 +97,12 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
         raw_queries = [s["raw_sql"] for s in self.context_dict["records"]]
         if lines:
             lines = [line.strip() for line in lines]
+            lines.sort()
+            raw_queries.sort()
             s = SequenceMatcher(None, lines, raw_queries)
             for tag, i1, i2, j1, j2 in s.get_opcodes():
                 if tag not in ["insert", "replace", "equal"]:
-                    print(
+                    formatted_queries.append(
                         "{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}".format(
                             tag,
                             i1,
@@ -99,20 +116,26 @@ class _AssertQueriesContext(_AssertNumQueriesContext):
                 if tag in ["insert", "replace"]:
                     for j in range(j1, j2):
                         if tag == "insert":
-                            print("New query was recorded:")
+                            formatted_queries.append("New query was recorded:")
                         elif tag == "replace":
-                            print("Query was replaced:")
-                        print(get_error_string(self.context_dict["records"][j]))
-                        print("See difference:")
-                        print(f"  diff {filename} {filename}.new")
+                            formatted_queries.append("Query was replaced:")
+                        formatted_queries.append("\t" + self.context_dict["records"][j]["raw_sql"] + "\n")
+
+        formatted_queries.append("See difference:")
+        formatted_queries.append(f"  diff {filename} {filename}.new")
+        os.makedirs(filename.rsplit("/", 1)[0], exist_ok=True)
+
+        fr_filename = filename + ".full_record"
+        with open(fr_filename, "w") as f:
+            write_full_record(self.context_dict["records"], f)
+            formatted_queries.append(f"  full record: {fr_filename}")
 
         if not boolean_env_var("TEST_QUERIES_REWRITE_SQLLOGS"):
             filename += ".new"
-        os.makedirs(filename.rsplit("/", 1)[0], exist_ok=True)
         with open(filename, "w") as f:
             f.write("\n".join(raw_queries) + "\n")
 
-        return super().__exit__(exc_type, exc_value, traceback)
+        return "\n".join(formatted_queries)
 
 
 class NumQueriesMixin(TransactionTestCase):

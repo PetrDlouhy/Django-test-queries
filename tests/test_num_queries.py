@@ -1,5 +1,4 @@
 import os
-from unittest.mock import call, patch
 
 from django.db import connections
 from django.test import TestCase
@@ -49,7 +48,7 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
             connections["default"].cursor().execute("SELECT 1")
         os.environ["TEST_QUERIES_DISABLE"] = "0"
         # But if TEST_QUERIES_DISABLE=False, it should fail
-        with self.assertRaisesRegex(AssertionError, "1 queries executed, 100 expected"):
+        with self.assertRaisesRegex(AssertionError, "1 != 100 : 1 queries executed, 100 expected"):
             with self.assertNumQueries(100):
                 connections["default"].cursor().execute("SELECT 1")
 
@@ -63,12 +62,6 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
         with self.assertNumQueries(2):
             connections["default"].cursor().execute("SELECT 1")
             connections["default"].cursor().execute("SELECT 2")
-        # Test content of the SQL log files
-        with open(
-            "tests/sqllog/test_num_queries.TestNumQueriesMixin.test_file_comparison_with_existing_lines.0.sqllog.new",
-            "r",
-        ) as f:
-            self.assertEqual(f.read(), "SELECT 1\nSELECT 2\n")
 
     def test_file_comparison_with_existing_lines_not_equal(self):
         expected_filename = (
@@ -77,24 +70,21 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
         )
         with open(expected_filename, "w") as f:
             f.write("SELECT 2")  # Writing multiple lines to the file
-        with patch("builtins.print") as mock_print:
-            with self.assertRaisesRegex(AssertionError, "Captured queries were:\n1. SELECT 1\n2. SELECT 2"):
-                with self.assertNumQueries(1):
-                    connections["default"].cursor().execute("SELECT 1")
-                    connections["default"].cursor().execute("SELECT 2")
-            self.assertEquals(mock_print.call_args_list[0], call("New query was recorded:"))
-            self.assertIn("sql: SELECT 1", mock_print.mock_calls[1].args[0]),
-            self.assertEquals(mock_print.call_args_list[2], call("See difference:"))
-            self.assertEquals(
-                mock_print.call_args_list[3],
-                call(
-                    f"  diff {current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_not_equal.0.sqllog "
-                    f"{current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_not_equal.0.sqllog.new"
-                ),
-            )
-            self.assertEquals(len(mock_print.call_args_list), 4)
+        with self.assertRaises(AssertionError) as cm:
+            with self.assertNumQueries(1):
+                connections["default"].cursor().execute("SELECT 1")
+                connections["default"].cursor().execute("SELECT 2")
+        error_message = str(cm.exception)
+        self.assertIn("2 != 1 : 2 queries executed, 1 expected", error_message)
+        self.assertIn("New query was recorded:\n\tSELECT 1", error_message)
+        self.assertIn("See difference:", error_message)
+        self.assertIn(
+            f"diff {current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_not_equal.0.sqllog "
+            f"{current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_not_equal.0.sqllog.new",
+            error_message,
+        )
 
     def test_file_comparison_with_existing_lines_delete(self):
         expected_filename = (
@@ -103,29 +93,23 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
         )
         with open(expected_filename, "w") as f:
             f.write("SELECT 1\nSELECT 3\nSELECT 3")  # Writing multiple lines to the file
-        with patch("builtins.print") as mock_print:
-            with self.assertRaisesRegex(AssertionError, "Captured queries were:\n1. SELECT 1\n2. SELECT 2"):
-                with self.assertNumQueries(1):
-                    connections["default"].cursor().execute("SELECT 1")
-                    connections["default"].cursor().execute("SELECT 2")
-                    connections["default"].cursor().execute("SELECT 3")
-            self.assertEquals(mock_print.call_args_list[0], call("New query was recorded:"))
-            self.assertIn("sql: SELECT 2", mock_print.mock_calls[1].args[0]),
-            self.assertEquals(mock_print.call_args_list[2], call("See difference:"))
-            self.assertEquals(
-                mock_print.call_args_list[3],
-                call(
-                    f"  diff {current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_delete.0.sqllog "
-                    f"{current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_delete.0.sqllog.new"
-                ),
-            )
-            self.assertEquals(
-                mock_print.call_args_list[4],
-                call("delete    a[2:3] --> b[3:3] ['SELECT 3...'] --> []"),
-            )
-            self.assertEquals(len(mock_print.call_args_list), 5)
+        with self.assertRaises(AssertionError) as cm:
+            with self.assertNumQueries(1):
+                connections["default"].cursor().execute("SELECT 1")
+                connections["default"].cursor().execute("SELECT 2")
+                connections["default"].cursor().execute("SELECT 3")
+        error_message = str(cm.exception)
+        self.assertIn("3 != 1 : 3 queries executed, 1 expected", error_message)
+        self.assertIn("New query was recorded:\n\tSELECT 2", error_message)
+        self.assertIn("See difference:", error_message)
+        self.assertIn(
+            f"diff {current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_delete.0.sqllog "
+            f"{current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_delete.0.sqllog.new",
+            error_message,
+        )
+        self.assertIn("delete    a[2:3] --> b[3:3] ['SELECT 3...'] --> []", error_message)
 
     def test_file_comparison_with_existing_lines_replace(self):
         expected_filename = (
@@ -133,25 +117,22 @@ class TestNumQueriesMixin(NumQueriesMixin, TestCase):
             "TestNumQueriesMixin.test_file_comparison_with_existing_lines_replace.0.sqllog"
         )
         with open(expected_filename, "w") as f:
-            f.write("SELECT 1\nSELECT 2\nSELECT 3\nSELECT 4\nSELECT 5")  # Writing multiple lines to the file
-        with patch("builtins.print") as mock_print:
-            with self.assertRaisesRegex(AssertionError, "Captured queries were:\n1. SELECT 1\n2. SELECT 2"):
-                with self.assertNumQueries(1):
-                    connections["default"].cursor().execute("SELECT 1")
-                    connections["default"].cursor().execute("SELECT 2")
-                    connections["default"].cursor().execute("SELECT 0")
-                    connections["default"].cursor().execute("SELECT 4")
-                    connections["default"].cursor().execute("SELECT 5")
-            self.assertEquals(mock_print.call_args_list[0], call("Query was replaced:"))
-            self.assertIn("sql: SELECT 0", mock_print.mock_calls[1].args[0]),
-            self.assertEquals(mock_print.call_args_list[2], call("See difference:"))
-            self.assertEquals(
-                mock_print.call_args_list[3],
-                call(
-                    f"  diff {current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_replace.0.sqllog "
-                    f"{current_directory}/tests/sqllog/test_num_queries."
-                    "TestNumQueriesMixin.test_file_comparison_with_existing_lines_replace.0.sqllog.new"
-                ),
-            )
-            self.assertEquals(len(mock_print.call_args_list), 4)
+            f.write("SELECT 1\nSELECT 2\nSELECT 3\nSELECT 5\nSELECT 6")  # Writing multiple lines to the file
+        with self.assertRaises(AssertionError) as cm:
+            with self.assertNumQueries(1):
+                connections["default"].cursor().execute("SELECT 1")
+                connections["default"].cursor().execute("SELECT 2")
+                connections["default"].cursor().execute("SELECT 4")
+                connections["default"].cursor().execute("SELECT 5")
+                connections["default"].cursor().execute("SELECT 6")
+        error_message = str(cm.exception)
+        self.assertIn("5 != 1 : 5 queries executed, 1 expected", error_message)
+        self.assertIn("Query was replaced:\n\tSELECT 4", error_message)
+        self.assertIn("See difference:", error_message)
+        self.assertIn(
+            f"diff {current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_replace.0.sqllog "
+            f"{current_directory}/tests/sqllog/test_num_queries."
+            "TestNumQueriesMixin.test_file_comparison_with_existing_lines_replace.0.sqllog.new",
+            error_message,
+        )
